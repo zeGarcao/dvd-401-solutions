@@ -17,11 +17,15 @@ contract UnstoppableVault is IERC3156FlashLender, ReentrancyGuard, Owned, ERC462
     using SafeTransferLib for ERC20;
     using FixedPointMathLib for uint256;
 
+    // @audit-info Flash loan fee of 5%
     uint256 public constant FEE_FACTOR = 0.05 ether;
+    // @audit-info Grace period of 30 days until the flash loan are free
     uint64 public constant GRACE_PERIOD = 30 days;
 
+    // @audit-info End of the free flash loans
     uint64 public immutable end = uint64(block.timestamp) + GRACE_PERIOD;
 
+    // @audit-info Address of protocol's fee receiver
     address public feeRecipient;
 
     error InvalidAmount(uint256 amount);
@@ -31,6 +35,7 @@ contract UnstoppableVault is IERC3156FlashLender, ReentrancyGuard, Owned, ERC462
 
     event FeeRecipientUpdated(address indexed newFeeRecipient);
 
+    // @audit-ok LGTM
     constructor(ERC20 _token, address _owner, address _feeRecipient)
         ERC4626(_token, "Too Damn Valuable Token", "tDVT")
         Owned(_owner)
@@ -42,6 +47,8 @@ contract UnstoppableVault is IERC3156FlashLender, ReentrancyGuard, Owned, ERC462
     /**
      * @inheritdoc IERC3156FlashLender
      */
+    // @audit-info Function to retrieve the maximum number of tokens that can be borrowed from flash loans => balanceOf(address(this))
+    // @audit-ok LGTM
     function maxFlashLoan(address _token) public view nonReadReentrant returns (uint256) {
         if (address(asset) != _token) {
             return 0;
@@ -53,11 +60,14 @@ contract UnstoppableVault is IERC3156FlashLender, ReentrancyGuard, Owned, ERC462
     /**
      * @inheritdoc IERC3156FlashLender
      */
+    // @audit-info Function to retrieve the fee that is needed to be paid for using flash loans (5% of the amount requested)
+    // @audit-issue 1 issue found
     function flashFee(address _token, uint256 _amount) public view returns (uint256 fee) {
         if (address(asset) != _token) {
             revert UnsupportedCurrency();
         }
 
+        // @audit-issue Users that request a max flash loan amount before grace period ends, will pay a fee (and they should not).
         if (block.timestamp < end && _amount < maxFlashLoan(_token)) {
             return 0;
         } else {
@@ -68,6 +78,8 @@ contract UnstoppableVault is IERC3156FlashLender, ReentrancyGuard, Owned, ERC462
     /**
      * @inheritdoc ERC4626
      */
+    // @audit-info Retrieves the number of tokens held in this contract
+    // @audit-ok LGTM
     function totalAssets() public view override nonReadReentrant returns (uint256) {
         return asset.balanceOf(address(this));
     }
@@ -75,13 +87,20 @@ contract UnstoppableVault is IERC3156FlashLender, ReentrancyGuard, Owned, ERC462
     /**
      * @inheritdoc IERC3156FlashLender
      */
+    // @audit-info Function to execute flash loans
+    // @audit-issue 1 issue found
     function flashLoan(IERC3156FlashBorrower receiver, address _token, uint256 amount, bytes calldata data)
         external
         returns (bool)
     {
+        // @audit-info Reverts if requested amount is zero
         if (amount == 0) revert InvalidAmount(0); // fail early
+        // @audit-info Reverts if token is not supported
         if (address(asset) != _token) revert UnsupportedCurrency(); // enforce ERC3156 requirement
+
+        // @audit-info Gets total tokens held in the contract
         uint256 balanceBefore = totalAssets();
+        // @audit-issue Must not trust on external token balance, this will revert if users directly transfer to this contract without using deposit function
         if (convertToShares(totalSupply) != balanceBefore) revert InvalidBalance(); // enforce ERC4626 requirement
 
         // transfer tokens out + execute callback on receiver
