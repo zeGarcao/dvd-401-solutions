@@ -25,6 +25,8 @@ contract TrusterLenderPool is ReentrancyGuard {
         uint256 balanceBefore = token.balanceOf(address(this));
 
         token.transfer(borrower, amount);
+
+        // @audit-issue Token approval can be called here to drain all the funds.
         target.functionCall(data);
 
         if (token.balanceOf(address(this)) < balanceBefore) {

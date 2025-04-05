@@ -5,12 +5,13 @@ pragma solidity =0.8.25;
 import {Test, console} from "forge-std/Test.sol";
 import {DamnValuableToken} from "../../src/DamnValuableToken.sol";
 import {TrusterLenderPool} from "../../src/truster/TrusterLenderPool.sol";
+import {Recover} from "../../src/truster/solution/Recover.sol";
 
 contract TrusterChallenge is Test {
     address deployer = makeAddr("deployer");
     address player = makeAddr("player");
     address recovery = makeAddr("recovery");
-    
+
     uint256 constant TOKENS_IN_POOL = 1_000_000e18;
 
     DamnValuableToken public token;
@@ -51,7 +52,10 @@ contract TrusterChallenge is Test {
      * CODE YOUR SOLUTION HERE
      */
     function test_truster() public checkSolvedByPlayer {
-        
+        // Execute recovery through the Recover smart contract constructor:
+        //  1. Make pool approve all the tokens for our Recover contract
+        //  2. Transfer all the tokens from the pool to the recovery address
+        new Recover(address(pool), address(token), recovery);
     }
 
     /**
