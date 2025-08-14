@@ -10,6 +10,7 @@ import {IUniswapV2Router02} from "@uniswap/v2-periphery/contracts/interfaces/IUn
 import {DamnValuableToken} from "../../src/DamnValuableToken.sol";
 import {FreeRiderNFTMarketplace} from "../../src/free-rider/FreeRiderNFTMarketplace.sol";
 import {FreeRiderRecoveryManager} from "../../src/free-rider/FreeRiderRecoveryManager.sol";
+import {FreeRiderRecovery} from "../../src/free-rider/solution/FreeRiderRecovery.sol";
 import {DamnValuableNFT} from "../../src/DamnValuableNFT.sol";
 
 contract FreeRiderChallenge is Test {
@@ -37,6 +38,7 @@ contract FreeRiderChallenge is Test {
     FreeRiderNFTMarketplace marketplace;
     DamnValuableNFT nft;
     FreeRiderRecoveryManager recoveryManager;
+    FreeRiderRecovery recoveryContract;
 
     modifier checkSolvedByPlayer() {
         vm.startPrank(player, player);
@@ -123,7 +125,11 @@ contract FreeRiderChallenge is Test {
      * CODE YOUR SOLUTION HERE
      */
     function test_freeRider() public checkSolvedByPlayer {
-        
+        recoveryContract = new FreeRiderRecovery(
+            address(uniswapPair), address(marketplace), address(nft), address(weth), address(recoveryManager)
+        );
+
+        recoveryContract.recover();
     }
 
     /**
